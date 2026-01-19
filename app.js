@@ -1,108 +1,144 @@
-// --------------------
-// Recipe Data
-// --------------------
+/***********************
+ * DATA (DO NOT MUTATE)
+ ***********************/
 const recipes = [
-  {
-    id: 1,
-    title: "Garlic Butter Pasta",
-    time: 25,
-    difficulty: "easy",
-    description: "A quick and creamy garlic butter pasta perfect for busy evenings.",
-    category: "pasta"
-  },
-  {
-    id: 2,
-    title: "Chicken Tikka Masala",
-    time: 70,
-    difficulty: "medium",
-    description: "Classic Indian curry with tender chicken cooked in spiced tomato gravy.",
-    category: "curry"
-  },
-  {
-    id: 3,
-    title: "Avocado Quinoa Salad",
-    time: 20,
-    difficulty: "easy",
-    description: "A healthy salad with fresh veggies, quinoa, and creamy avocado.",
-    category: "salad"
-  },
-  {
-    id: 4,
-    title: "Beef Bourguignon",
-    time: 120,
-    difficulty: "hard",
-    description: "A rich French stew slow-cooked with red wine and tender beef.",
-    category: "stew"
-  },
-  {
-    id: 5,
-    title: "Spicy Ramen Bowl",
-    time: 35,
-    difficulty: "medium",
-    description: "Flavorful ramen noodles with a spicy broth and fresh toppings.",
-    category: "noodles"
-  },
-  {
-    id: 6,
-    title: "Classic Margherita Pizza",
-    time: 90,
-    difficulty: "hard",
-    description: "Homemade pizza with fresh mozzarella, basil, and tomato sauce.",
-    category: "pizza"
-  },
-  {
-    id: 7,
-    title: "Vegetable Stir Fry",
-    time: 30,
-    difficulty: "easy",
-    description: "Colorful vegetables stir-fried with soy sauce and sesame oil.",
-    category: "asian"
-  },
-  {
-    id: 8,
-    title: "Lamb Rogan Josh",
-    time: 80,
-    difficulty: "hard",
-    description: "A bold and aromatic Kashmiri curry made with slow-cooked lamb.",
-    category: "curry"
-  }
+    { title: "Pasta", difficulty: "easy", time: 20 },
+    { title: "Burger", difficulty: "easy", time: 25 },
+    { title: "Biryani", difficulty: "hard", time: 60 },
+    { title: "Salad", difficulty: "easy", time: 10 },
+    { title: "Pizza", difficulty: "medium", time: 40 },
+    { title: "Curry", difficulty: "medium", time: 35 },
+    { title: "Steak", difficulty: "hard", time: 50 },
+    { title: "Sandwich", difficulty: "easy", time: 15 }
 ];
 
-// --------------------
-// DOM Selection
-// --------------------
-const recipeContainer = document.querySelector("#recipe-container");
+/***********************
+ * STATE
+ ***********************/
+let currentFilter = "all";
+let currentSort = "none";
 
-// --------------------
-// Create Recipe Card
-// --------------------
-const createRecipeCard = (recipe) => {
-  return `
-    <div class="recipe-card" data-id="${recipe.id}">
-      <h3>${recipe.title}</h3>
-      <div class="recipe-meta">
-        <span>⏱️ ${recipe.time} min</span>
-        <span class="difficulty ${recipe.difficulty}">
-          ${recipe.difficulty}
-        </span>
-      </div>
-      <p>${recipe.description}</p>
-    </div>
-  `;
+/***********************
+ * DOM REFERENCES
+ ***********************/
+const recipeContainer = document.getElementById("recipe-container");
+const filterButtons = document.querySelectorAll("[data-filter]");
+const sortButtons = document.querySelectorAll("[data-sort]");
+
+/***********************
+ * PURE FILTER FUNCTIONS
+ ***********************/
+const filterByDifficulty = (recipes, level) =>
+    recipes.filter(r => r.difficulty === level);
+
+const filterQuick = (recipes) =>
+    recipes.filter(r => r.time < 30);
+
+const applyFilter = (recipes, filterType) => {
+    switch (filterType) {
+        case "easy":
+        case "medium":
+        case "hard":
+            return filterByDifficulty(recipes, filterType);
+        case "quick":
+            return filterQuick(recipes);
+        default:
+            return recipes;
+    }
 };
 
-// --------------------
-// Render Recipes
-// --------------------
-const renderRecipes = (recipesArray) => {
-  const recipeHTML = recipesArray
-    .map(recipe => createRecipeCard(recipe))
-    .join("");
+/***********************
+ * PURE SORT FUNCTIONS
+ ***********************/
+const sortByName = (recipes) =>
+    [...recipes].sort((a, b) => a.title.localeCompare(b.title));
 
-  recipeContainer.innerHTML = recipeHTML;
+const sortByTime = (recipes) =>
+    [...recipes].sort((a, b) => a.time - b.time);
+
+const applySort = (recipes, sortType) => {
+    switch (sortType) {
+        case "name":
+            return sortByName(recipes);
+        case "time":
+            return sortByTime(recipes);
+        default:
+            return recipes;
+    }
 };
 
-// --------------------
-// Initialize App
-// --------------------
-renderRecipes(recipes);
+/***********************
+ * RENDER FUNCTION
+ ***********************/
+const renderRecipes = (recipes) => {
+    recipeContainer.innerHTML = "";
+
+    recipes.forEach(recipe => {
+        const card = document.createElement("div");
+        card.className = "recipe-card";
+        card.innerHTML = `
+            <h3>${recipe.title}</h3>
+            <p>Difficulty: ${recipe.difficulty}</p>
+            <p>Time: ${recipe.time} mins</p>
+        `;
+        recipeContainer.appendChild(card);
+    });
+};
+
+/***********************
+ * UPDATE DISPLAY (CORE)
+ ***********************/
+const updateDisplay = () => {
+    let result = recipes;
+    result = applyFilter(result, currentFilter);
+    result = applySort(result, currentSort);
+
+    renderRecipes(result);
+
+    console.log(
+        `Showing ${result.length} recipes | Filter: ${currentFilter} | Sort: ${currentSort}`
+    );
+};
+
+/***********************
+ * ACTIVE BUTTON UI
+ ***********************/
+const updateActiveButtons = () => {
+    filterButtons.forEach(btn => {
+        btn.classList.toggle(
+            "active",
+            btn.dataset.filter === currentFilter
+        );
+    });
+
+    sortButtons.forEach(btn => {
+        btn.classList.toggle(
+            "active",
+            btn.dataset.sort === currentSort
+        );
+    });
+};
+
+/***********************
+ * EVENT HANDLERS
+ ***********************/
+filterButtons.forEach(btn => {
+    btn.addEventListener("click", (e) => {
+        currentFilter = e.target.dataset.filter;
+        updateActiveButtons();
+        updateDisplay();
+    });
+});
+
+sortButtons.forEach(btn => {
+    btn.addEventListener("click", (e) => {
+        currentSort = e.target.dataset.sort;
+        updateActiveButtons();
+        updateDisplay();
+    });
+});
+
+/***********************
+ * INIT
+ ***********************/
+updateDisplay();
