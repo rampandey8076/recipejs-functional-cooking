@@ -1,144 +1,202 @@
-/***********************
- * DATA (DO NOT MUTATE)
- ***********************/
-const recipes = [
-    { title: "Pasta", difficulty: "easy", time: 20 },
-    { title: "Burger", difficulty: "easy", time: 25 },
-    { title: "Biryani", difficulty: "hard", time: 60 },
-    { title: "Salad", difficulty: "easy", time: 10 },
-    { title: "Pizza", difficulty: "medium", time: 40 },
-    { title: "Curry", difficulty: "medium", time: 35 },
-    { title: "Steak", difficulty: "hard", time: 50 },
-    { title: "Sandwich", difficulty: "easy", time: 15 }
-];
+const RecipeApp = (function () {
 
-/***********************
- * STATE
- ***********************/
-let currentFilter = "all";
-let currentSort = "none";
+    console.log("RecipeApp initializing...");
 
-/***********************
- * DOM REFERENCES
- ***********************/
-const recipeContainer = document.getElementById("recipe-container");
-const filterButtons = document.querySelectorAll("[data-filter]");
-const sortButtons = document.querySelectorAll("[data-sort]");
+    /********************
+     * DATA (PRIVATE)
+     ********************/
+    const recipes = [
+        {
+            id: 1,
+            title: "Pasta",
+            difficulty: "easy",
+            time: 20,
+            ingredients: ["Pasta", "Salt", "Water", "Olive oil"],
+            steps: [
+                "Boil water",
+                {
+                    text: "Cook pasta",
+                    substeps: [
+                        "Add pasta to water",
+                        "Stir occasionally"
+                    ]
+                },
+                "Drain and serve"
+            ]
+        },
+        {
+            id: 2,
+            title: "Biryani",
+            difficulty: "hard",
+            time: 60,
+            ingredients: ["Rice", "Chicken", "Spices", "Onion"],
+            steps: [
+                "Wash rice",
+                {
+                    text: "Prepare masala",
+                    substeps: [
+                        "Fry onions",
+                        {
+                            text: "Add spices",
+                            substeps: ["Add chili", "Add garam masala"]
+                        }
+                    ]
+                },
+                "Cook rice and mix"
+            ]
+        },
+        {
+            id: 3,
+            title: "Sandwich",
+            difficulty: "easy",
+            time: 10,
+            ingredients: ["Bread", "Butter", "Vegetables"],
+            steps: ["Butter bread", "Add veggies", "Serve"]
+        },
+        {
+            id: 4,
+            title: "Pizza",
+            difficulty: "medium",
+            time: 40,
+            ingredients: ["Dough", "Cheese", "Sauce"],
+            steps: ["Prepare base", "Add toppings", "Bake"]
+        }
+    ];
 
-/***********************
- * PURE FILTER FUNCTIONS
- ***********************/
-const filterByDifficulty = (recipes, level) =>
-    recipes.filter(r => r.difficulty === level);
+    /********************
+     * STATE
+     ********************/
+    let currentFilter = "all";
+    let currentSort = "none";
 
-const filterQuick = (recipes) =>
-    recipes.filter(r => r.time < 30);
+    const container = document.getElementById("recipe-container");
 
-const applyFilter = (recipes, filterType) => {
-    switch (filterType) {
-        case "easy":
-        case "medium":
-        case "hard":
-            return filterByDifficulty(recipes, filterType);
-        case "quick":
-            return filterQuick(recipes);
-        default:
-            return recipes;
-    }
-};
+    /********************
+     * FILTERS (PURE)
+     ********************/
+    const applyFilter = (list) => {
+        if (currentFilter === "quick") {
+            return list.filter(r => r.time < 30);
+        }
+        if (currentFilter === "all") return list;
+        return list.filter(r => r.difficulty === currentFilter);
+    };
 
-/***********************
- * PURE SORT FUNCTIONS
- ***********************/
-const sortByName = (recipes) =>
-    [...recipes].sort((a, b) => a.title.localeCompare(b.title));
+    /********************
+     * SORTS (PURE)
+     ********************/
+    const applySort = (list) => {
+        if (currentSort === "name") {
+            return [...list].sort((a, b) =>
+                a.title.localeCompare(b.title)
+            );
+        }
+        if (currentSort === "time") {
+            return [...list].sort((a, b) => a.time - b.time);
+        }
+        return list;
+    };
 
-const sortByTime = (recipes) =>
-    [...recipes].sort((a, b) => a.time - b.time);
+    /********************
+     * RECURSIVE STEPS
+     ********************/
+    const renderSteps = (steps) => {
+        let html = "<ul>";
+        steps.forEach(step => {
+            if (typeof step === "string") {
+                html += `<li>${step}</li>`;
+            } else {
+                html += `<li>${step.text}`;
+                html += `<div class="substeps">${renderSteps(step.substeps)}</div>`;
+                html += `</li>`;
+            }
+        });
+        html += "</ul>";
+        return html;
+    };
 
-const applySort = (recipes, sortType) => {
-    switch (sortType) {
-        case "name":
-            return sortByName(recipes);
-        case "time":
-            return sortByTime(recipes);
-        default:
-            return recipes;
-    }
-};
-
-/***********************
- * RENDER FUNCTION
- ***********************/
-const renderRecipes = (recipes) => {
-    recipeContainer.innerHTML = "";
-
-    recipes.forEach(recipe => {
-        const card = document.createElement("div");
-        card.className = "recipe-card";
-        card.innerHTML = `
+    /********************
+     * CARD CREATION
+     ********************/
+    const createCard = (recipe) => `
+        <div class="recipe-card" data-id="${recipe.id}">
             <h3>${recipe.title}</h3>
             <p>Difficulty: ${recipe.difficulty}</p>
             <p>Time: ${recipe.time} mins</p>
-        `;
-        recipeContainer.appendChild(card);
-    });
-};
 
-/***********************
- * UPDATE DISPLAY (CORE)
- ***********************/
-const updateDisplay = () => {
-    let result = recipes;
-    result = applyFilter(result, currentFilter);
-    result = applySort(result, currentSort);
+            <button class="toggle-btn" data-toggle="steps">Show Steps</button>
+            <button class="toggle-btn" data-toggle="ingredients">Show Ingredients</button>
 
-    renderRecipes(result);
+            <div class="steps-container">
+                ${renderSteps(recipe.steps)}
+            </div>
 
-    console.log(
-        `Showing ${result.length} recipes | Filter: ${currentFilter} | Sort: ${currentSort}`
-    );
-};
+            <div class="ingredients-container">
+                <ul>
+                    ${recipe.ingredients.map(i => `<li>${i}</li>`).join("")}
+                </ul>
+            </div>
+        </div>
+    `;
 
-/***********************
- * ACTIVE BUTTON UI
- ***********************/
-const updateActiveButtons = () => {
-    filterButtons.forEach(btn => {
-        btn.classList.toggle(
-            "active",
-            btn.dataset.filter === currentFilter
-        );
-    });
+    /********************
+     * RENDER
+     ********************/
+    const updateDisplay = () => {
+        let list = applyFilter(recipes);
+        list = applySort(list);
 
-    sortButtons.forEach(btn => {
-        btn.classList.toggle(
-            "active",
-            btn.dataset.sort === currentSort
-        );
-    });
-};
+        container.innerHTML = list.map(createCard).join("");
+    };
 
-/***********************
- * EVENT HANDLERS
- ***********************/
-filterButtons.forEach(btn => {
-    btn.addEventListener("click", (e) => {
-        currentFilter = e.target.dataset.filter;
-        updateActiveButtons();
+    /********************
+     * EVENT DELEGATION
+     ********************/
+    const handleToggle = (e) => {
+        if (!e.target.classList.contains("toggle-btn")) return;
+
+        const card = e.target.closest(".recipe-card");
+        const type = e.target.dataset.toggle;
+        const section = card.querySelector(`.${type}-container`);
+
+        section.classList.toggle("visible");
+        e.target.textContent =
+            section.classList.contains("visible")
+                ? `Hide ${type}`
+                : `Show ${type}`;
+    };
+
+    /********************
+     * INIT
+     ********************/
+    const init = () => {
         updateDisplay();
-    });
-});
 
-sortButtons.forEach(btn => {
-    btn.addEventListener("click", (e) => {
-        currentSort = e.target.dataset.sort;
-        updateActiveButtons();
-        updateDisplay();
-    });
-});
+        container.addEventListener("click", handleToggle);
 
-/***********************
- * INIT
- ***********************/
-updateDisplay();
+        document.querySelectorAll("[data-filter]").forEach(btn => {
+            btn.addEventListener("click", () => {
+                currentFilter = btn.dataset.filter;
+                document.querySelectorAll("[data-filter]").forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+                updateDisplay();
+            });
+        });
+
+        document.querySelectorAll("[data-sort]").forEach(btn => {
+            btn.addEventListener("click", () => {
+                currentSort = btn.dataset.sort;
+                document.querySelectorAll("[data-sort]").forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+                updateDisplay();
+            });
+        });
+
+        console.log("RecipeApp ready!");
+    };
+
+    return { init };
+
+})();
+
+RecipeApp.init();
